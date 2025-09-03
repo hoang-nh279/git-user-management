@@ -6,6 +6,8 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+import static jdk.nashorn.internal.runtime.Debug.id;
+
 public class UserDAO implements IUserDAO {
     private String jdbcURL = "jdbc:mysql://localhost:3306/demo?useSSL=false";
     private String jdbcUsername = "root";
@@ -161,5 +163,65 @@ public class UserDAO implements IUserDAO {
         }
 
     }
+    @Override
+    public void addUserTransaction(User user, List<Integer> permisions) {
+        Connection conn = null;
+         PreparedStatement pstmt = null;
+
+         PreparedStatement pstmtAssignment = null;
+
+         ResultSet rs = null;
+         try{
+             conn = getConnection();
+
+             conn.setAutoCommit(false);
+
+             pstmt = conn.prepareStatement(INSERT_USERS_SQL,Statement.RETURN_GENERATED_KEYS);
+             pstmt.setString(1,user.getName());
+             pstmt.setString(2,user.getEmail());
+             pstmt.setString(3,user.getCountry());
+             int rowAffected = pstmt.executeUpdate();
+
+             rs = pstmt.getGeneratedKeys();
+
+             int userId =0;
+             if(rs.next())
+                 userId = rs.getInt(1);
+
+             if (rowAffected == 1){
+                 String sqlPivot = "INSERT INTO user_permision(user_id,permision_id) "
+                         + "VALUES(?,?)";
+                 pstmtAssignment =conn.prepareStatement(sqlPivot);
+
+                 for (int permisionId : permisions){
+                     pstmtAssignment.setInt(1,userId);
+                     pstmtAssignment.setInt(2, permisionId);
+                     pstmtAssignment.executeUpdate();
+                 }
+                 conn.commit();
+             }else{
+                 conn.rollback();
+             }
+         }catch (SQLException ex){
+
+             try{
+                 if(conn != null)
+                     conn.rollback();
+             }catch (SQLException e){
+                 System.out.println(e.getMessage());
+             }
+             System.out.println(ex.getMessage());
+         }finally{
+             try{
+                 if(rs != null) rs.close();
+                 if (pstmt != null) pstmt.close();
+                 if(pstmtAssignment != null ) pstmtAssignment.close();
+                 if(conn != null) conn.close();
+             }catch (SQLException e){
+                 System.out.println(e.getMessage());
+             }
+         }
+    }
+
 
 }
