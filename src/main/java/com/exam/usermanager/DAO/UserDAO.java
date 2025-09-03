@@ -2,7 +2,9 @@ package com.exam.usermanager.DAO;
 
 import com.exam.usermanager.model.User;
 
+import java.math.BigDecimal;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,13 +13,27 @@ import static jdk.nashorn.internal.runtime.Debug.id;
 public class UserDAO implements IUserDAO {
     private String jdbcURL = "jdbc:mysql://localhost:3306/demo?useSSL=false";
     private String jdbcUsername = "root";
-    private String jdbcPassword = "123456";
+    private String jdbcPassword = "270901";
+
+
 
     private static final String INSERT_USERS_SQL = "INSERT INTO users (name, email, country) VALUES (?, ?, ?);";
     private static final String SELECT_USER_BY_ID = "select id,name,email,country from users where id =?";
     private static final String SELECT_ALL_USERS = "select * from users";
     private static final String DELETE_USERS_SQL = "delete from users where id = ?;";
     private static final String UPDATE_USERS_SQL = "update users set name = ?,email= ?, country =? where id = ?;";
+    private static final String SQL_INSERT = "INSERT INTO EMPLOYEE (NAME, SALARY, CREATED_DATE) VALUES (?,?,?)";
+    private static final String SQL_UPDATE = "Update employee set salary=? where name=?";
+    private static final String SQL_TABLE_CREATE = "UPDATE EMPLOYEE SET SALARY=? WHERE NAME=?";
+    private static final String SQL_TABLE_Create = "Create table employee"
+            + "("
+            + "ID serial,"
+            + "NAME varchar(100)not null,"
+            + "salary numberic (15,2) not null,"
+            + "Create_date timestamp,"
+            +"primary key (id)"
+            + ")";
+    private static final String SQL_TABLE_DROP = "drop table if exists employee";
 
     public UserDAO() {
     }
@@ -222,6 +238,68 @@ public class UserDAO implements IUserDAO {
              }
          }
     }
+    @Override
+    public void insertUpdateWithoutTransaction() {
+        try (Connection conn = getConnection();
+             Statement statement = conn.createStatement();
+             PreparedStatement psInsert = conn.prepareStatement(SQL_INSERT);
+             PreparedStatement psUpdate = conn.prepareStatement(SQL_UPDATE)) {
+            statement.execute(SQL_TABLE_DROP);
+            statement.execute(SQL_TABLE_CREATE);
 
+            // Run list of insert commands
+            psInsert.setString(1, "Quynh");
+            psInsert.setBigDecimal(2, new BigDecimal(10));
+            psInsert.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+            psInsert.execute();
+
+            psInsert.setString(1, "Ngan");
+            psInsert.setBigDecimal(2, new BigDecimal(20));
+            psInsert.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+            psInsert.execute();
+
+            // Run list of update commands
+            // below line caused error, test transaction
+            // org.postgresql.util.PSQLException: No value specified for parameter 1.
+            psUpdate.setBigDecimal(2, new BigDecimal(999.99));
+            //psUpdate.setBigDecimal(1, new BigDecimal(999.99));
+            psUpdate.setString(2, "Quynh");
+            psUpdate.execute();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    @Override
+    public void insertUpdateUseTransaction() {
+        try(Connection conn = getConnection();
+        Statement statement = conn.createStatement();
+        PreparedStatement psInsert = conn.prepareStatement(SQL_INSERT);
+        PreparedStatement psUpdate = conn.prepareStatement(SQL_UPDATE)){
+            statement.execute(SQL_TABLE_DROP);
+            statement.execute(SQL_TABLE_CREATE);
+            conn.setAutoCommit(false);
+            psInsert.setString(1,"Quynh");
+            psInsert.setBigDecimal(2,new BigDecimal(10));
+            psInsert.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+            psInsert.execute();
+
+            psInsert.setString(1,"Ngan");
+            psInsert.setBigDecimal(2,new BigDecimal(20));
+            psInsert.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
+            psInsert.execute();
+
+            psUpdate.setBigDecimal(2, new BigDecimal(999.99));
+
+            psUpdate.setString(2,"Quynh");
+            psUpdate.execute();
+
+            conn.commit();
+            conn.setAutoCommit(true);
+
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
 }

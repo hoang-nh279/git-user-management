@@ -18,6 +18,9 @@ import java.util.List;
 public class UserServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private UserDAO userDAO;
+    private void testWithoutTran(HttpServletRequest request, HttpServletResponse response)  {
+        userDAO.insertUpdateWithoutTransaction();
+    }
 
     public void init() {
         userDAO = new UserDAO();
@@ -60,6 +63,12 @@ public class UserServlet extends HttpServlet {
                     break;
                 case "delete":
                     deleteUser(request, response);
+                    break;
+                case"test-without-tran":
+                    testWithoutTran(request,response);
+                    break;
+                case"test-use-tran":
+                    testUseTran(request,response);
                     break;
                 default:
                     listUser(request, response);
@@ -121,6 +130,9 @@ public class UserServlet extends HttpServlet {
         userDAO.insertUser(newUser);
         RequestDispatcher dispatcher = request.getRequestDispatcher("user/create.jsp");
         dispatcher.forward(request, response);
+    }
+    private void testUseTran(HttpServletRequest request,HttpServletResponse response){
+        userDAO.insertUpdateUseTransaction();
     }
 
     private void updateUser(HttpServletRequest request, HttpServletResponse response)
